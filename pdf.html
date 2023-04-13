@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Newegg Top Daily Deals</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        font-size: 12pt;
+      }
+      h1 {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 5px;
+        text-align: left;
+        vertical-align: top;
+        border: 1px solid #ccc;
+      }
+      th {
+        background-color: #eee;
+        font-weight: bold;
+      }
+      .price-was {
+        text-decoration: line-through;
+        color: #999;
+      }
+      .price-savings {
+        color: green;
+      }
+      a {
+        text-decoration: none;
+        color: #0071c5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Newegg Top Daily Deals</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Current Price</th>
+          <th>Was</th>
+          <th>Savings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in results %}
+        <tr>
+          <td><a href="{{ result.link }}">{{ result.title }}</a></td>
+          <td>{{ result.price_current }}</td>
+          <td{% if result.price_was %} class="price-was"{% endif %}>{{ result.price_was or "" }}</td>
+          <td{% if result.price_savings %} class="price-savings"{% endif %}>{{ result.price_savings or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
