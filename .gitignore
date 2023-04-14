@@ -1,3 +1,4 @@
 .env
 bot.log
 cron.log
+daily_deals.pdf
