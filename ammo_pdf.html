@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Ammo Top Daily Deals</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        font-size: 12pt;
+      }
+      h1 {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 5px;
+        text-align: left;
+        vertical-align: top;
+        border: 1px solid #ccc;
+      }
+      th {
+        background-color: #eee;
+        font-weight: bold;
+      }
+      .price-was {
+        text-decoration: line-through;
+        color: #999;
+      }
+      .price-savings {
+        color: green;
+      }
+      a {
+        text-decoration: none;
+        color: #0071c5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Ammo Top Daily Deals</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Price</th>
+          <th>CPR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in results %}
+        <tr>
+          <td><a href="{{ result.link }}">{{ result.title }}</a></td>
+          <td>{{ result.price }}</td>
+          <td>$0.{{ result.cpr }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
