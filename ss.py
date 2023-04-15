@@ -23,10 +23,11 @@ class AmmoDealsBot:
                 self.scrape_target_sports(url)
             if "palmettostatearmory.com" in url:
                 self.scrape_palmetto(url)
+            if "2awarehouse.com" in url:
+                self.scrape_warehouse_2a(url)
 
         self.results.sort(key=lambda x: int(x["cpr"]))
         self.results = self.results[:10]
-
         print(self.results)
 
         # Return name of website for use in the generate_pdf() method
@@ -104,11 +105,48 @@ class AmmoDealsBot:
 
         driver.quit()
 
+    def scrape_warehouse_2a(self, url):
+        driver = Chrome()
+
+        # Navigate to the page
+        driver.get(url)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        inner = soup.find("ul", {"class": "productGrid productGrid--maxCol3"})
+        for row in inner.find_all("li", {"class": "product"}):
+            result = {}
+            result["title"] = (
+                row.find("h4", {"class": "card-title"}).find("a").text.strip()
+            )
+            result["link"] = (
+                row.find("h4", {"class": "card-title"}).find("a").get("href")
+            )
+            result["price"] = row.find(
+                "span", {"class": "price price--withoutTax price--main"}
+            ).text.strip()
+            price = float(result["price"].replace("$", ""))
+            title_rounds = [
+                word for word in result["title"].split(" ") if word in ["50RD", "100RD"]
+            ]
+            if len(title_rounds) > 0:
+                title_round = int(title_rounds[0].split("R")[0])
+                result["cpr"] = str(round(float(price / title_round), 2)).replace(
+                    "0.", ""
+                )
+                self.results.append(result)
+            else:
+                continue
+
+        driver.quit()
+
 
 def main():
+    warehouse_2a_url = (
+        "https://2awarehouse.com/ammo/pistol-ammo/9mm-luger/?_bc_fsnf=1&in_stock=1"
+    )
     palmetto_url = "https://palmettostatearmory.com/9mm-ammo.html?caliber_multi=9mm"
     targets_sports_ammo_url = "https://www.targetsportsusa.com/9mm-luger-ammo-c-51.aspx"
-    urls = [palmetto_url, targets_sports_ammo_url]
+    urls = [palmetto_url, targets_sports_ammo_url, warehouse_2a_url]
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",

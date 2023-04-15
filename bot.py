@@ -174,6 +174,8 @@ class AmmoDealsBot(FatherBot):
                 self.scrape_target_sports(url)
             if "palmettostatearmory.com" in url:
                 self.scrape_palmetto(url)
+            if "2awarehouse.com" in url:
+                self.scrape_warehouse_2a(url)
 
         self.results.sort(key=lambda x: int(x["cpr"]))
         self.results = self.results[:10]
@@ -253,6 +255,40 @@ class AmmoDealsBot(FatherBot):
 
         driver.quit()
 
+    def scrape_warehouse_2a(self, url):
+        driver = Chrome()
+
+        # Navigate to the page
+        driver.get(url)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        inner = soup.find("ul", {"class": "productGrid productGrid--maxCol3"})
+        for row in inner.find_all("li", {"class": "product"}):
+            result = {}
+            result["title"] = (
+                row.find("h4", {"class": "card-title"}).find("a").text.strip()
+            )
+            result["link"] = (
+                row.find("h4", {"class": "card-title"}).find("a").get("href")
+            )
+            result["price"] = row.find(
+                "span", {"class": "price price--withoutTax price--main"}
+            ).text.strip()
+            price = float(result["price"].replace("$", ""))
+            title_rounds = [
+                word for word in result["title"].split(" ") if word in ["50RD", "100RD"]
+            ]
+            if len(title_rounds) > 0:
+                title_round = int(title_rounds[0].split("R")[0])
+                result["cpr"] = str(round(float(price / title_round), 2)).replace(
+                    "0.", ""
+                )
+                self.results.append(result)
+            else:
+                continue
+
+        driver.quit()
+
 
 def main():
     answer = (
@@ -265,11 +301,10 @@ def main():
         )
         newegg_bot.run()
     else:
-        palmetto_url = "https://palmettostatearmory.com/9mm-ammo.html?caliber_multi=9mm"
-        targets_sports_ammo_url = (
-            "https://www.targetsportsusa.com/9mm-luger-ammo-c-51.aspx"
-        )
-        urls = [targets_sports_ammo_url, palmetto_url]
+        warehouse_2a_url = config("WAREHOUSE_2A_URL")
+        palmetto_url = config("PALMETTO_URL")
+        targets_sports_ammo_url = config("TARGET_SPORTS_AMMO_URL")
+        urls = [targets_sports_ammo_url, palmetto_url, warehouse_2a_url]
         ammo_bot = AmmoDealsBot(urls, HEADERS)
         ammo_bot.run()
 
