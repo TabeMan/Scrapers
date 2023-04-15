@@ -1,5 +1,6 @@
 import requests
 import smtplib
+import time
 from decouple import config
 from weasyprint import HTML
 from jinja2 import Template
@@ -176,6 +177,8 @@ class AmmoDealsBot(FatherBot):
                 self.scrape_palmetto(url)
             if "2awarehouse.com" in url:
                 self.scrape_warehouse_2a(url)
+            if "www.ammunitiondepot.com" in url:
+                self.scrape_ammunition_depot(url)
 
         self.results.sort(key=lambda x: int(x["cpr"]))
         self.results = self.results[:10]
@@ -193,6 +196,7 @@ class AmmoDealsBot(FatherBot):
 
         # Navigate to the page
         driver.get(url)
+        time.sleep(3)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
         inner = soup.find("ol", {"class": "products list items product-items"})
@@ -223,6 +227,7 @@ class AmmoDealsBot(FatherBot):
 
         # Navigate to the page
         driver.get(url)
+        time.sleep(3)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
         inner = soup.find("div", {"class": "ResultsArea"}).find(
@@ -256,13 +261,25 @@ class AmmoDealsBot(FatherBot):
         driver.quit()
 
     def scrape_warehouse_2a(self, url):
+        """
+        Scrapes ammunition products from 2awarehouse.com.
+
+        Args:
+            url (str): The URL to scrape.
+
+        Returns:
+            None. Appends a dictionary of information about each ammunition product to self.results.
+        """
         driver = Chrome()
 
         # Navigate to the page
         driver.get(url)
+        time.sleep(3)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
         inner = soup.find("ul", {"class": "productGrid productGrid--maxCol3"})
+
+        # Iterate over each product listed on the page
         for row in inner.find_all("li", {"class": "product"}):
             result = {}
             result["title"] = (
@@ -275,9 +292,13 @@ class AmmoDealsBot(FatherBot):
                 "span", {"class": "price price--withoutTax price--main"}
             ).text.strip()
             price = float(result["price"].replace("$", ""))
+
+            # Find the rounds information in the product title
             title_rounds = [
                 word for word in result["title"].split(" ") if word in ["50RD", "100RD"]
             ]
+
+            # If rounds information is found in the title, calculate and append CPR to the result dictionary
             if len(title_rounds) > 0:
                 title_round = int(title_rounds[0].split("R")[0])
                 result["cpr"] = str(round(float(price / title_round), 2)).replace(
@@ -285,6 +306,109 @@ class AmmoDealsBot(FatherBot):
                 )
                 self.results.append(result)
             else:
+                # If rounds information is not found, skip this product
+                continue
+
+        driver.quit()
+
+    def scrape_ammunition_depot(self, url):
+        """
+        Scrapes ammunition products from ammunitiondepot.com.
+
+        Args:
+            url (str): The URL to scrape.
+
+        Returns:
+            None. Appends a dictionary of information about each ammunition product to self.results.
+        """
+        driver = Chrome()
+
+        # Navigate to the page
+        driver.get(url)
+        time.sleep(3)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        inner = soup.find(
+            "div",
+            {"id": "searchspring-content"},
+        ).find(
+            "ol",
+            {
+                "class": "ss-item-container products list items product-items ss-targeted"
+            },
+        )
+
+        # Iterate over each product listed on the page
+        for row in inner.find_all(
+            "li", {"class": "ss-item item product product-item ng-scope"}
+        ):
+            try:
+                result = {}
+                result["title"] = row.find(
+                    "a", {"class": "product-item-link ng-binding"}
+                ).text.strip()
+                result["link"] = row.find(
+                    "a", {"class": "product-item-link ng-binding"}
+                ).get("href")
+                result["price"] = row.find(
+                    "span", {"class": "ng-binding ss-sale-price"}
+                ).text.strip()
+
+                # Extract CPR information from product description
+                result["cpr"] = (
+                    row.find("span", {"class": "rounds-price ng-scope"})
+                    .text.strip()
+                    .split(".")[1]
+                    .split("per")[0]
+                )
+                self.results.append(result)
+            except AttributeError:
+                # If product information cannot be found, skip this product
+                continue
+
+        driver.quit()
+
+    def scrape_lucky_gunner(self, url):
+        """
+        Scrapes luckygunner.com and extracts data on ammo products.
+
+        Args:
+            url (str): The URL of the luckygunner.com page to scrape.
+
+        Returns:
+            None.
+        """
+        driver = Chrome()
+
+        # Navigate to the page
+        driver.get(url)
+        time.sleep(3)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        # Find the section of the page that contains the products
+        inner = soup.find("ol", {"class": "products-list"})
+
+        # Extract data for each product
+        for row in inner.find_all("li", {"class": "item"}):
+            try:
+                result = {}
+                result["title"] = (
+                    row.find("h3", {"class": "product-name"}).find("a").text.strip()
+                )
+                result["link"] = (
+                    row.find("h3", {"class": "product-name"}).find("a").get("href")
+                )
+                result["price"] = (
+                    row.find("p", {"class": "special-price"})
+                    .find("span", {"class": "price"})
+                    .text.strip()
+                )
+                result["cpr"] = (
+                    row.find("p", {"class": "cprc"}).text.strip().split(".")[0]
+                )
+                self.results.append(result)
+            except (AttributeError, TypeError):
+                # If product information cannot be found, skip this product
                 continue
 
         driver.quit()
@@ -295,16 +419,22 @@ def main():
         input("Which site would you like to crawl? (newegg or ammo) ").lower().strip()
     )
     if answer == "newegg":
-        newegg_bot = NeweggDealsBot(
-            "https://www.newegg.com/todays-deals?cm_sp=Head_Navigation-_-Under_Search_Bar-_-Today%27s+Best+Deals&icid=720202",
-            HEADERS,
-        )
+        newegg_url = config("NEWEGG_URL")
+        newegg_bot = NeweggDealsBot(newegg_url, HEADERS)
         newegg_bot.run()
     else:
+        lucky_gunner_url = config("LUCKY_GUNNER_URL")
+        ammunition_depot_url = config("AMMUNITION_DEPOT_URL")
         warehouse_2a_url = config("WAREHOUSE_2A_URL")
         palmetto_url = config("PALMETTO_URL")
         targets_sports_ammo_url = config("TARGET_SPORTS_AMMO_URL")
-        urls = [targets_sports_ammo_url, palmetto_url, warehouse_2a_url]
+        urls = [
+            targets_sports_ammo_url,
+            palmetto_url,
+            warehouse_2a_url,
+            ammunition_depot_url,
+            lucky_gunner_url,
+        ]
         ammo_bot = AmmoDealsBot(urls, HEADERS)
         ammo_bot.run()
 
