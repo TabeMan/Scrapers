@@ -1,4 +1,6 @@
 .env
 bot.log
 cron.log
-daily_deals.pdf
+Bot/daily_deals.pdf
+Bot/ss.py
+newegg_pdf.html

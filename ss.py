@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver import Chrome
 import time
+import pprint
 
 
 class AmmoDealsBot:
@@ -21,17 +22,18 @@ class AmmoDealsBot:
         for url in self.urls:
             # if "targetsportsusa.com" in url:
             #     self.scrape_target_sports(url)
-            # if "palmettostatearmory.com" in url:
-            #     self.scrape_palmetto(url)
+            if "palmettostatearmory.com" in url:
+                self.scrape_palmetto(url)
             # if "2awarehouse.com" in url:
             #     self.scrape_warehouse_2a(url)
             # if "ammunitiondepot.com" in url:
             #     self.scrape_ammunition_depot(url)
-            if "luckygunner.com" in url:
-                self.scrape_lucky_gunner(url)
+            # if "luckygunner.com" in url:
+            #     self.scrape_lucky_gunner(url)
 
         self.results.sort(key=lambda x: int(x["cpr"]))
         self.results = self.results[:10]
+        pprint.pprint(self.results)
 
         # Return name of website for use in the generate_pdf() method
         return "ammo"
@@ -46,6 +48,7 @@ class AmmoDealsBot:
 
         # Navigate to the page
         driver.get(url)
+        time.sleep(3)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
         inner = soup.find("ol", {"class": "products list items product-items"})
@@ -225,7 +228,7 @@ def main():
     warehouse_2a_url = (
         "https://2awarehouse.com/ammo/pistol-ammo/9mm-luger/?_bc_fsnf=1&in_stock=1"
     )
-    palmetto_url = "https://palmettostatearmory.com/9mm-ammo.html?caliber_multi=9mm"
+    palmetto_url = "https://palmettostatearmory.com/9mm-ammo.html"
     targets_sports_ammo_url = "https://www.targetsportsusa.com/9mm-luger-ammo-c-51.aspx"
     urls = [
         palmetto_url,
@@ -252,74 +255,43 @@ def main():
 if __name__ == "__main__":
     main()
 
-# import requests
-# import logging
-# from bs4 import BeautifulSoup
 
+# class NeweggDealsBot(FatherBot):
+#     """
+#     A web scraping bot that crawls newegg.com for daily deals and generates a report in PDF format.
 
-# class AmmoDealsBot:
-#     def __init__(self, url, headers):
-#         self.url = url
-#         self.headers = headers
-#         self.results = []
-#         self.logger = logging.getLogger(__name__)
+#     Inherits from the FatherBot class.
+#     """
 
 #     def search(self):
-#         try:
-#             page = requests.get(self.url, headers=self.headers)
-#         except requests.exceptions.RequestException as e:
-#             self.logger.exception("Error making request: %s", e)
-#             return
+#         """
+#         Scrapes newegg.com for daily deals and populates the results list.
 
+#         Returns:
+#             str: The name of the website that was searched.
+#         """
+#         # Send a GET request to the website and parse the HTML content with BeautifulSoup
+#         page = requests.get(self.urls, headers=self.headers)
 #         soup = BeautifulSoup(page.content, "html.parser")
-#         top_deal = soup.find(
-#             "div", {"id": "widget-042c7939-f091-4960-b527-4f8ddb10d77b"}
-#         )
-#         for row in top_deal.find_all("div", {"class": "wf-offer-content"})[:8]:
+
+#         # Find the section of the page with the daily deals and loop through each item
+#         inner = soup.find("div", {"class": "item-cells-wrap tile-cells five-cells"})
+#         for row in inner.find_all("div", {"class": "item-cell"}):
 #             result = {}
-#             result["title"] = row.find(
-#                 "a", {"class": "wf-offer-link v-line-clamp"}
-#             ).text.strip()
-#             link = row.find("a", {"class": "wf-offer-link v-line-clamp"}).get("href")
-#             result["link"] = f"https://www.bestbuy.com{link}"
-#             price_div = row.find(
-#                 "div", {"class": "priceView-hero-price priceView-customer-price"}
+#             # Extract the relevant information for each deal and add it to the results dictionary
+#             result["title"] = row.find("a", {"class": "item-title"}).text.strip()
+#             result["link"] = row.find("a", {"class": "item-title"}).get("href")
+#             result["price_was"] = row.find("li", {"class": "price-was"}).text.strip()
+#             result["price_current"] = (
+#                 row.find("li", {"class": "price-current"})
+#                 .text.strip()
+#                 .split("–")[0]
+#                 .replace("\xa0", "")
 #             )
-#             print(price_div)
-#             if price_div:
-#                 result["price"] = price_div.find("span").text.strip()
-#             else:
-#                 result["price"] = "N/A"
-#             # result["price_savings"] = row.find(
-#             #     "div",
-#             #     {
-#             #         "class": "pricing-price__savings pricing-price__savings--promo-red"
-#             #     }.text.strip(),
-#             # )
+#             result["price_savings"] = row.find(
+#                 "li", {"class": "price-save"}
+#             ).text.strip()
 #             self.results.append(result)
-#             print(self.results)
 
-
-# def main():
-#     logging.basicConfig(
-#         filename="bot2.log",
-#         level=logging.DEBUG,
-#         format="%(asctime)s - %(levelname)s - %(message)s",
-#     )
-
-#     url = "https://www.bestbuy.com/site/misc/deal-of-the-day/pcmcat248000050016.c?id=pcmcat248000050016"
-#     headers = {
-#         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
-#         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-#         "Accept-Language": "en-US,en;q=0.5",
-#         "Accept-Encoding": "gzip, deflate, br",
-#         "Connection": "keep-alive",
-#         "Upgrade-Insecure-Requests": "1",
-#     }
-
-#     bot = AmmoDealsBot(url, headers)
-#     bot.search()
-
-
-# if __name__ == "__main__":
-#     main()
+#         # Return name of website for use in the generate_pdf() method
+#         return "newegg"
